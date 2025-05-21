@@ -21,13 +21,12 @@ def save_links_to_file(links, filename='movie_links.txt'):
     print(f"Links saved to {filename}")
 
 
-while page <= 760:
-    # Wait for movie links to load
+while page <= 2572:
+    # Grabs and waits for a links to load
     linksName = wait.until(EC.presence_of_all_elements_located(
         (By.XPATH, '//*[@id="browse-reviews-list"]/div/div/div//div[2]/h3/a[@href]')
     ))
 
-    # Add links from current page to the array
     current_page_links = []
     for e in linksName:
         link = e.get_attribute('href')
@@ -40,22 +39,21 @@ while page <= 760:
     if page % 10 == 0:
         save_links_to_file(all_links)
 
-    # Find and click next button
     next_button = wait.until(EC.element_to_be_clickable(
         (By.CSS_SELECTOR, 'li.pagination__next > button')
     ))
-    # Scroll the button into view
+    # Scrolls to bottom for button to appear
     driver.execute_script("arguments[0].scrollIntoView(true);", next_button)
-    time.sleep(1)  # Wait for scroll to complete
-    # Click using JavaScript
+    time.sleep(1)
+    # Click to next page
     driver.execute_script("arguments[0].click();", next_button)
 
-    # Wait for page content to update
+    # Wait for page to load
     time.sleep(3)
     page += 1
 
 print(f"\nTotal number of links collected: {len(all_links)}")
-# Final save of all links
+# Save links to text file
 save_links_to_file(all_links)
 driver.quit()
 
