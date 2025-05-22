@@ -4,6 +4,7 @@ import csv
 import math
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.common import WebDriverException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,15 +16,14 @@ from collections import defaultdict
 options = Options()
 options.add_argument('--blink-settings=imagesEnabled=false')
 options.add_argument('--headless=new')
+service = Service('chromedriver-win64\chromedriver.exe')
 all_links = []
-
 # This grabs all the data from a single movie review page
 def process_chunk(links_chunk):
-    driver2 = webdriver.Chrome(options=options)
+    driver2 = webdriver.Chrome(service=service, options=options)
     driver2.set_window_size(2560, 1400)
     wait = WebDriverWait(driver2, 30)
     chunk_data = []
-
     try:
         for link in links_chunk:
             try:
@@ -35,16 +35,20 @@ def process_chunk(links_chunk):
                 custom_wait_clickable_and_click(wait.until(EC.element_to_be_clickable(
                     (By.XPATH,
                      '/html/body/div[1]/div[2]/div[2]/div/div[2]/div/div/div/div/div/div[1]/div[3]/div/div/div[1]/div/div[7]/div/button'))))
-                time.sleep(2)
+                time.sleep(3)
 
                 stars = len(driver2.find_elements(By.CSS_SELECTOR,
                                                   'div.review-rating > span > span > i.icon-star-solid.active'))
                 movie_name = wait.until(EC.presence_of_element_located(
                     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div[2]/div/div/div/div/div/div[1]/div[1]/div[1]/h1')
                 )).text
-                genre = wait.until(EC.presence_of_element_located(
+                genre_element = wait.until(EC.presence_of_element_located(
                     (By.CSS_SELECTOR, 'span.detail--genre > a')
-                )).text
+                ), "Unknown")
+                genre = genre_element.text if (genre_element.text != '') else "Unknown"
+                if genre == "Unknown":
+                    print(f"Skipping movie with unknown genre: {movie_name}")
+                    continue
                 date = wait.until(EC.presence_of_element_located(
                     (By.XPATH,
                      '/html/body/div[1]/div[2]/div[2]/div/div[2]/div/div/div/div/div/div[1]/div[3]/div/div/div[1]/div/div[7]/div/div/ul/li[1]/span')
@@ -75,7 +79,7 @@ def save_links_to_file(links, filename='movie_links.txt'):
 # Grabs all the links from the movie review site
 def process_page_chunk(page_numbers):
     links = []
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(service=service, options=options)
     driver.get("https://www.commonsensemedia.org/movie-reviews#browse-reviews-list")
     wait = WebDriverWait(driver, 20)
 
@@ -157,7 +161,7 @@ def custom_wait_clickable_and_click(selector):
   count = 0
   while count < 5:
     try:
-      time.sleep(3)
+      time.sleep(7)
       elem = selector
       elem.click()
       return elem
@@ -211,7 +215,7 @@ def get_data(links=None):
 
     # Sort genres
     sorted_genres = sorted(genre_averages.keys())
-    minimal_data = [list(genre_averages.values())]
+    minimal_data = [[genre_averages[genre] for genre in sorted_genres]]
 
     # Define headers
     headers_full = ['Movie Name', 'Stars', 'Genre', 'Release Year', 'MPAA Rating']
