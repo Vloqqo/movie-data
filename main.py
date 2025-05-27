@@ -154,7 +154,8 @@ def get_links(num_pages=10):
             f.write(f"{link}\n")
 
     print(f"Links saved to movie_links.txt")
-    return all_links
+    print("\nLink collection completed. Starting data processing...")
+    get_data(all_links)
 
 # custom click as default wasn't working for me
 def custom_wait_clickable_and_click(selector):
@@ -240,15 +241,15 @@ def get_data(links=None):
     return all_movie_data, genre_averages
 
 
-def main():
-    user_input = input("Do you want to load the links from a file? (y/n): ").strip().lower()
+# def main():
+#     user_input = input("Do you want to load the links from a file? (y/n): ").strip().lower()
 
-    if user_input == 'n':
-        get_links()
-        print("\nLink collection completed. Starting data processing...")
-        get_data(all_links)
+#     if user_input == 'n':
+#         get_links()
+#         print("\nLink collection completed. Starting data processing...")
+#         get_data(all_links)
 
-    elif user_input == 'y':
-        get_data()
+#     elif user_input == 'y':
+#         get_data()
 
-main()
+# main()
