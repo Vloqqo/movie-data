@@ -209,8 +209,8 @@ def get_data(links=None, num_threads=1):
         genre_stars[genre].append(stars)
 
     # Calculate average for each genre
-    genre_averages = {genre: round(sum(stars) / len(stars), 2)
-                      for genre, stars in genre_stars.items()}
+    genre_averages = {genre: (round(sum(stars) / len(stars), 2), len(stars))
+              for genre, stars in genre_stars.items()}
 
     # Sort genres
     sorted_genres = sorted(genre_averages.keys())
@@ -219,17 +219,19 @@ def get_data(links=None, num_threads=1):
     # Define headers
     headers_full = ['Movie Name', 'Stars', 'Genre', 'Release Year', 'MPAA Rating']
 
-    print(all_movie_data)
+    print(genre_averages)
     # Save all collected data to CSV
     with open('output.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers_full)
         writer.writerows(all_movie_data)
 
-    with open('output_minimal.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    with open('output_genre_data.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(sorted_genres)
-        writer.writerows(minimal_data)
+        writer.writerow(['Genre', 'Average Stars', 'Count'])  # Define headers
+        for genre, (average, count) in genre_averages.items():
+            writer.writerow([genre, average, count])  # Write each genre's data
+
 
     print(f"Total movies processed: {len(all_movie_data)}")
     print("\nAverage stars by genre:")
