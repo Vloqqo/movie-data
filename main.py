@@ -16,12 +16,12 @@ from collections import defaultdict
 options = Options()
 options.add_argument('--blink-settings=imagesEnabled=false')
 options.add_argument('--headless=new')
-service = Service('chromedriver-win64\chromedriver.exe')
+service = Service('./chromedriver-win64/chromedriver.exe')
 all_links = []
 # This grabs all the data from a single movie review page
 def process_chunk(links_chunk):
     driver2 = webdriver.Chrome(service=service, options=options)
-    driver2.set_window_size(2560, 1400)
+    driver2.set_window_size(3840, 2160)
     wait = WebDriverWait(driver2, 30)
     chunk_data = []
     try:
@@ -121,11 +121,10 @@ def process_page_chunk(page_numbers):
     return links
 
 # Saves the links and does them in parallel
-def get_links(num_pages=10):
+def get_links(num_pages=10, num_threads=1):
     page_numbers = list(range(1, num_pages + 1))
 
     # number of threads asked as going one by one takes too long
-    num_threads = int(input("How many threads do you want to use? (Speeds up progress)"))
 
     # splits up workload evenly
     chunk_size = math.ceil(len(page_numbers) / num_threads)
@@ -177,14 +176,13 @@ def custom_wait_clickable_and_click(selector):
   raise TimeoutException('custom_wait_clickable timed out')
 
 # Processes the links for parallel processing and refines the data
-def get_data(links=None):
+def get_data(links=None, num_threads=1):
     if links is None:
         # If no links provided, read from file
         with open('movie_links.txt', 'r', encoding='utf-8') as f:
             links = [line.strip() for line in f.readlines()]
 
     # Define number of threads to use
-    num_threads = int(input("How many threads do you want to use? (Speeds up progress)"))
 
     # Split links into chunks
     chunk_size = math.ceil(len(links) / num_threads)
