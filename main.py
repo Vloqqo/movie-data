@@ -232,11 +232,13 @@ def get_data(links=None, num_threads=1):
         for genre, (average, count) in genre_averages.items():
             writer.writerow([genre, average, count])  # Write each genre's data
 
-
     print(f"Total movies processed: {len(all_movie_data)}")
     print("\nAverage stars by genre:")
+    genre_ratings = []  # Create an array to store the genre data
     for genre in sorted_genres:
-        print(f"{genre}: {genre_averages[genre]}")
+        avg_stars, count = genre_averages[genre]
+        genre_ratings.append([genre, avg_stars])  # Add genre and its average stars to the array
+        print(f"{genre}: {avg_stars}")  # Keep the original print for console output
 
     return all_movie_data, genre_averages
 
