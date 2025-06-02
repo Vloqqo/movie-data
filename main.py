@@ -239,9 +239,39 @@ def get_data(links=None, num_threads=1):
         avg_stars, count = genre_averages[genre]
         genre_ratings.append([genre, avg_stars])  # Add genre and its average stars to the array
         print(f"{genre}: {avg_stars}")  # Keep the original print for console output
+    print(f"Total movies processed: {len(all_movie_data)}")
+    print("\nAverage stars by genre:")
+    # Gather movies by name length and calculate average stars
+    name_length_to_stars = {}  # Dictionary to store stars grouped by name length
+    for movie in all_movie_data:
+        movie_name = movie[0]  # Movie name
+        stars = movie[1]       # Movie stars
+        name_length = len(movie_name)  # Calculate the length of the movie name
+        if name_length not in name_length_to_stars:
+            name_length_to_stars[name_length] = []  # Initialize list for this name length
+        name_length_to_stars[name_length].append(stars)  # Add stars to the list for this name length
 
-    return all_movie_data, genre_averages
+    # Calculate average stars for each name length
+    name_length_to_average_stars = {
+    name_length: round(sum(stars) / len(stars), 2)
+    for name_length, stars in name_length_to_stars.items()
+}
 
+# Sort the name lengths by increasing order
+    sorted_name_lengths = sorted(name_length_to_average_stars.items())
+
+    print("\nAverage Stars by Movie Name Length:")
+    for name_length, avg_stars in sorted_name_lengths:
+        print(f"Name Length: {name_length}, Average Stars: {avg_stars}")
+
+    csv_filename = "name_length_to_average_stars.csv"
+    with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Name Length", "Average Stars"])  # Write headers
+        for name_length, avg_stars in sorted_name_lengths:
+            writer.writerow([name_length, avg_stars])  # Write sorted data
+
+    return all_movie_data, genre_averages, name_length_to_average_stars    
 
 # def main():
 #     user_input = input("Do you want to load the links from a file? (y/n): ").strip().lower()
