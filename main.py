@@ -136,18 +136,16 @@ def get_links(num_pages=10, num_threads=1):
 
     # Process chunks in parallel using ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        # Submit all chunks for processing
         future_results = [executor.submit(process_page_chunk, chunk) for chunk in page_chunks]
 
-        # Collect results as they complete
         for future in concurrent.futures.as_completed(future_results):
             chunk_links = future.result()
             all_links.extend(chunk_links)
 
-    # Remove any duplicates while preserving order
+    # prints out the total number of links collected
     print(f"Total links found: {len(all_links)}")
 
-    # Save links to file
+    # saves links to file which is used for importing
     with open('movie_links.txt', 'w', encoding='utf-8') as f:
         for link in all_links:
             f.write(f"{link}\n")
@@ -182,45 +180,37 @@ def get_data(links=None, num_threads=1):
         with open('movie_links.txt', 'r', encoding='utf-8') as f:
             links = [line.strip() for line in f.readlines()]
 
-    # Define number of threads to use
-
-    # Split links into chunks
+    # slipts up the workload evenly for the threads
     chunk_size = math.ceil(len(links) / num_threads)
     link_chunks = [links[i:i + chunk_size] for i in range(0, len(links), chunk_size)]
 
     all_movie_data = []
 
-    # Process chunks in parallel using ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        # Submit all chunks for processing and get future objects
         future_results = [executor.submit(process_chunk, chunk) for chunk in link_chunks]
 
-        # Collect results as they complete
         for future in future_results:
             chunk_results = future.result()
             all_movie_data.extend(chunk_results)
 
     genre_stars = defaultdict(list)
 
-    # Collect all unique genres and their corresponding stars
+    # grabs all the genres and their ratings
     for row in all_movie_data:
         genre = row[2]
         stars = row[1]
         genre_stars[genre].append(stars)
 
-    # Calculate average for each genre
+    # uses stars to calculate average ratings for each genre
     genre_averages = {genre: (round(sum(stars) / len(stars), 2), len(stars))
               for genre, stars in genre_stars.items()}
 
-    # Sort genres
     sorted_genres = sorted(genre_averages.keys())
     minimal_data = [[genre_averages[genre] for genre in sorted_genres]]
-
-    # Define headers
     headers_full = ['Movie Name', 'Stars', 'Genre', 'Release Year', 'MPAA Rating']
 
     print(genre_averages)
-    # Save all collected data to CSV
+    # saves data to csv file for gui and other uses
     with open('output.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers_full)
@@ -228,36 +218,35 @@ def get_data(links=None, num_threads=1):
 
     with open('output_genre_data.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Genre', 'Average Stars', 'Count'])  # Define headers
+        writer.writerow(['Genre', 'Average Stars', 'Count'])
         for genre, (average, count) in genre_averages.items():
-            writer.writerow([genre, average, count])  # Write each genre's data
+            writer.writerow([genre, average, count])
 
     print(f"Total movies processed: {len(all_movie_data)}")
     print("\nAverage stars by genre:")
-    genre_ratings = []  # Create an array to store the genre data
+    genre_ratings = []
     for genre in sorted_genres:
         avg_stars, count = genre_averages[genre]
-        genre_ratings.append([genre, avg_stars])  # Add genre and its average stars to the array
-        print(f"{genre}: {avg_stars}")  # Keep the original print for console output
+        genre_ratings.append([genre, avg_stars])
+        print(f"{genre}: {avg_stars}")
     print(f"Total movies processed: {len(all_movie_data)}")
     print("\nAverage stars by genre:")
     # Gather movies by name length and calculate average stars
-    name_length_to_stars = {}  # Dictionary to store stars grouped by name length
+    name_length_to_stars = {}
     for movie in all_movie_data:
         movie_name = movie[0]  # Movie name
         stars = movie[1]       # Movie stars
-        name_length = len(movie_name)  # Calculate the length of the movie name
+        name_length = len(movie_name)
         if name_length not in name_length_to_stars:
-            name_length_to_stars[name_length] = []  # Initialize list for this name length
-        name_length_to_stars[name_length].append(stars)  # Add stars to the list for this name length
+            name_length_to_stars[name_length] = []
+        name_length_to_stars[name_length].append(stars)
 
-    # Calculate average stars for each name length
     name_length_to_average_stars = {
     name_length: round(sum(stars) / len(stars), 2)
     for name_length, stars in name_length_to_stars.items()
 }
 
-# Sort the name lengths by increasing order
+# sort the lengths by numbers increasing
     sorted_name_lengths = sorted(name_length_to_average_stars.items())
 
     print("\nAverage Stars by Movie Name Length:")
@@ -267,21 +256,34 @@ def get_data(links=None, num_threads=1):
     csv_filename = "name_length_to_average_stars.csv"
     with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["Name Length", "Average Stars"])  # Write headers
+        writer.writerow(["Name Length", "Average Stars"])
         for name_length, avg_stars in sorted_name_lengths:
-            writer.writerow([name_length, avg_stars])  # Write sorted data
+            writer.writerow([name_length, avg_stars])
+    genre_by_year = defaultdict(lambda: defaultdict(int))
+    total_movies_per_year = defaultdict(int)
+    for movie in all_movie_data:
+        year = movie[3]  # Release Year
+        genre = movie[2]  # Genre
+        genre_by_year[year][genre] += 1
+        total_movies_per_year[year] += 1
 
-    return all_movie_data, genre_averages, name_length_to_average_stars    
+    # Calculate percentages for all genres per year
+    genre_distribution_data = []
+    for year in sorted(genre_by_year.keys()):
+        year_data = genre_by_year[year]
+        total_movies = total_movies_per_year[year]
+        for genre, count in year_data.items():
+            percentage = round((count / total_movies) * 100, 2)
+            genre_distribution_data.append([year, genre, percentage])
 
-# def main():
-#     user_input = input("Do you want to load the links from a file? (y/n): ").strip().lower()
+    # Save genre distribution data to CSV
+    with open('genre_distribution.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Year', 'Genre', 'Percentage'])
+        writer.writerows(genre_distribution_data)
 
-#     if user_input == 'n':
-#         get_links()
-#         print("\nLink collection completed. Starting data processing...")
-#         get_data(all_links)
+    print("\nGenre Distribution Over Time:")
+    for year, genre, percentage in genre_distribution_data:
+        print(f"Year {year}: {genre} ({percentage}%)")
 
-#     elif user_input == 'y':
-#         get_data()
-
-# main()
+    return all_movie_data, genre_averages, name_length_to_average_stars, genre_distribution_data

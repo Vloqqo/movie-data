@@ -3,7 +3,7 @@ import numpy as np
 from tkinter import filedialog
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
+from collections import defaultdict
 from main import get_links, get_data
 import sys
 import threading
@@ -36,42 +36,186 @@ class App(ctk.CTk):
         inputs_frame = ctk.CTkFrame(self.tab1)
         inputs_frame.pack(side='top', anchor='center', pady=20)
 
-        # Scrollable frame for graphs
         self.scrollable_frame = ctk.CTkScrollableFrame(self.tab2, width=780, height=580)
         self.scrollable_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Initialize the graphs
+        # starts up the graphs
         self.init_graphs()
 
-        # Buttons
         self.import_button = ctk.CTkButton(button_frame, text="Import Links", command=self.import_links)
         self.scrape_button = ctk.CTkButton(button_frame, text="Scrape Links", command=self.scrape_links)
 
-        # Label and Entry
         label = ctk.CTkLabel(inputs_frame, text="Number of Threads:")
         label.pack(side="left", padx=5)
 
-        self.threads = ctk.CTkEntry(inputs_frame, width=100)  # Changed to self.threads
+        self.threads = ctk.CTkEntry(inputs_frame, width=100)
         self.threads.pack(side="left", padx=5)
 
         label2 = ctk.CTkLabel(inputs_frame, text="Number of Pages:")
         label2.pack(side="left", padx=5)
 
-        self.pages = ctk.CTkEntry(inputs_frame, width=100)  # Changed to self.pages
+        self.pages = ctk.CTkEntry(inputs_frame, width=100)
         self.pages.pack(side="left", padx=5)
 
         self.import_button.pack(side="left", padx=5, pady=5)
         self.scrape_button.pack(side="left", padx=5, pady=5)
 
-        # Text widget for console output
         self.text_widget = ctk.CTkTextbox(self.tab1, width=750, height=400)
         self.text_widget.pack(pady=10)
 
-        # Redirect console output to the text widget
+        # console output will show up in this text widget
         sys.stdout = ConsoleRedirector(self.text_widget)
 
+    def update_graph_with_data(self):
+        def task():
+            for widget in self.scrollable_frame.winfo_children():
+                widget.destroy()
+
+            if os.path.exists("output_genre_data.csv"):
+                data = {}
+                with open('output_genre_data.csv', 'r', encoding='utf-8') as csvfile:
+                    reader = csv.reader(csvfile)
+                    next(reader)  # Skip header
+                    for row in reader:
+                        genre = row[0]
+                        avg_stars = float(row[1])
+                        data[genre] = (avg_stars, 0)
+
+                self.after(0, lambda: self.create_chart(
+                    data=data,
+                    title="Movie Ratings by Genre",
+                    category_labels=("Average Rating", ""),
+                    category_colors=("#FF5733", "#FFB533"),
+                    unit="★",
+                    parent=self.scrollable_frame
+                ))
+
+            if os.path.exists("name_length_to_average_stars.csv"):
+                data = {}
+                with open('name_length_to_average_stars.csv', 'r', encoding='utf-8') as csvfile:
+                    reader = csv.reader(csvfile)
+                    next(reader)  # Skip header
+                    for row in reader:
+                        name_length = int(row[0])
+                        avg_stars = float(row[1])
+                        data[name_length] = (avg_stars, 0)
+
+                self.after(0, lambda: self.create_chart(
+                    data=data,
+                    title="Average Stars by Movie Name Length",
+                    category_labels=("Average Stars", ""),
+                    category_colors=("#33FF57", "#33FFB5"),
+                    unit="★",
+                    parent=self.scrollable_frame
+                ))
+
+            if os.path.exists("genre_distribution.csv"):
+                # Create a nested dictionary to store data by year and genre
+                data_by_year_genre = defaultdict(lambda: defaultdict(float))
+                genres = set()
+
+                # Read and organize the data
+                with open('genre_distribution.csv', 'r', encoding='utf-8') as csvfile:
+                    reader = csv.reader(csvfile)
+                    next(reader)  # Skip header
+                    for row in reader:
+                        year = row[0]
+                        genre = row[1]
+                        percentage = float(row[2])
+                        data_by_year_genre[year][genre] = percentage
+                        genres.add(genre)
+
+                self.after(0, lambda: self.create_genre_distribution_chart(
+                    data=data_by_year_genre,
+                    genres=list(genres),
+                    title="Genre Distribution Over Time",
+                    parent=self.scrollable_frame
+                ))
+
+        threading.Thread(target=task).start()
+
+    def create_genre_distribution_chart(self, data, genres, title, parent):
+        figure, axis = plt.subplots(figsize=(10, 6), facecolor='none')
+
+        # Check if we have any data to plot
+        if not data or not genres:
+            axis.text(0.5, 0.5, 'No data available',
+                      horizontalalignment='center',
+                      verticalalignment='center',
+                      color='white',
+                      transform=axis.transAxes)
+        else:
+            years = sorted(data.keys())
+
+            # Create color map for genres
+            colors = plt.cm.rainbow(np.linspace(0, 1, len(genres)))
+
+            # Create a dictionary to store point coordinates and their counts
+            point_counts = defaultdict(int)
+
+            # Plot each genre as a separate line
+            for genre, color in zip(sorted(genres), colors):
+                # Collect points for current genre
+                points = []
+                for year in years:
+                    percentage = data[year].get(genre, 0)
+                    point_counts[(year, percentage)] += 1
+                    points.append((year, percentage))
+
+                # Plot lines first
+                x_coords = [p[0] for p in points]
+                y_coords = [p[1] for p in points]
+                axis.plot(x_coords, y_coords, '-', color=color, alpha=0.3, zorder=1)
+
+                # Plot points with size based on overlap count
+                for x, y in points:
+                    count = point_counts[(x, y)]
+                    # Increase base size to 100, with larger scaling factor
+                    size = 100 + (count * 50)
+                    axis.scatter(x, y, s=size, color=color, alpha=0.6,
+                                 label=genre if (x, y) == points[0] else "",
+                                 zorder=2)
+
+                    # Add count indicator if more than one point
+                    if count > 1:
+                        axis.text(x, y, str(count),
+                                  horizontalalignment='center',
+                                  verticalalignment='center',
+                                  color='white',
+                                  fontweight='bold',
+                                  fontsize=10,  # Increased font size
+                                  zorder=3)
+
+        axis.set_xlabel('Year', color='white')
+        axis.set_ylabel('Percentage of Movies', color='white')
+        axis.set_title(title, fontsize=12, color='white')
+
+        plt.xticks(rotation=45, ha='right', color='white')
+        plt.yticks(color='white')
+        axis.set_ylim(0, 100)
+
+        # Customize appearance
+        axis.set_facecolor('#0A0A0A')
+        figure.patch.set_facecolor('#0A0A0A')
+        axis.tick_params(colors='white')
+
+        for spine in axis.spines.values():
+            spine.set_color('white')
+            spine.set_visible(True)
+
+        axis.grid(True, color='gray', alpha=0.2)
+        legend = axis.legend(bbox_to_anchor=(1.05, 1), loc='upper left',
+                             facecolor='#0A0A0A', edgecolor='white')
+        for text in legend.get_texts():
+            text.set_color('white')
+        plt.tight_layout()
+
+        canvas = FigureCanvasTkAgg(figure, master=parent)
+        canvas_widget = canvas.get_tk_widget()
+        canvas_widget.pack(fill='both', expand=True, pady=10)
+
     def init_graphs(self):
-        # Create the first graph using Matplotlib
+        # creates the graphs that will be in gui
         self.create_chart(
             data={},
             title="Movie Ratings by Genre",
@@ -81,13 +225,18 @@ class App(ctk.CTk):
             parent=self.scrollable_frame
         )
 
-        # Create the second graph using Matplotlib
         self.create_chart(
             data={},
             title="Average Stars by Movie Name Length",
             category_labels=("Average Stars", ""),
             category_colors=("#33FF57", "#33FFB5"),
             unit="★",
+            parent=self.scrollable_frame
+        )
+        self.create_genre_distribution_chart(
+            data={},
+            genres=[],  # Add this parameter
+            title="Genre Distribution Over Time",
             parent=self.scrollable_frame
         )
 
@@ -99,19 +248,16 @@ class App(ctk.CTk):
                     links = file.readlines()
                     links = [link.strip() for link in links if link.strip()]
                 print(f"Imported {len(links)} links.")
-                # Call get_data with the links
                 get_data(
                     links,
                     num_threads=int(self.threads.get()) if self.threads.get().isdigit() and int(self.threads.get()) > 0 else 1
                 )
-                # Update the graph after data processing
                 _app.update_graph_with_data()
 
         threading.Thread(target=task).start()
 
     def scrape_links(self):
         def task():
-            # Call get_links with the number of threads and pages specified
             get_links(
                 num_pages=int(self.pages.get()) if self.pages.get().isdigit() and int(self.pages.get()) > 0 else 1,
                 num_threads=int(self.threads.get()) if self.threads.get().isdigit() and int(self.threads.get()) > 0 else 1
@@ -120,13 +266,7 @@ class App(ctk.CTk):
         threading.Thread(target=task).start()
 
     def create_chart(self, data, title, category_labels, category_colors, unit, parent):
-        """
-        Creates the stacked bar chart using Matplotlib and embeds it in CustomTkinter.
-        """
-        # Create Matplotlib figure
         figure, axis = plt.subplots(figsize=(8, 6), facecolor='none')
-
-        # Prepare data for plotting
         categories = list(data.keys())
         category1_values = np.array([data[category][0] for category in categories]) if categories else []
         category2_values = np.array([data[category][1] for category in categories]) if categories else []
@@ -151,73 +291,18 @@ class App(ctk.CTk):
 
         axis.set_title(title, fontsize=12, color='white')
 
-        # Set background color for dark mode
         axis.set_facecolor('#0A0A0A')  # Dark gray background for the graph
         figure.patch.set_facecolor('#0A0A0A')  # Dark gray background for the figure
 
-        # Add legend
         legend = axis.legend(facecolor='#0A0A0A', edgecolor='white', fontsize=10)
         for text in legend.get_texts():
             text.set_color("white")
 
-        # Draw grid lines for better readability
-        axis.grid(True, linestyle='--', alpha=0.3, color='white')
-
-        # Embed Matplotlib figure into CustomTkinter
+        # embedding matplotlib chart into customtkinter
         canvas = FigureCanvasTkAgg(figure, master=parent)
         canvas_widget = canvas.get_tk_widget()
         canvas_widget.pack(fill='both', expand=True, pady=10)
-        
-    def update_graph_with_data(self):
-        def task():
-            # Clear the scrollable frame to remove old graphs
-            for widget in self.scrollable_frame.winfo_children():
-                widget.destroy()
 
-            # Example: Update the first graph (Movie Ratings by Genre)
-            if os.path.exists("output_genre_data.csv"):
-                data = {}
-                with open('output_genre_data.csv', 'r', encoding='utf-8') as csvfile:
-                    reader = csv.reader(csvfile)
-                    next(reader)  # Skip header
-                    for row in reader:
-                        genre = row[0]
-                        avg_stars = float(row[1])
-                        data[genre] = (avg_stars, 0)  # Add second value as 0
-
-                # Schedule the graph creation on the main thread
-                self.after(0, lambda: self.create_chart(
-                    data=data,
-                    title="Movie Ratings by Genre",
-                    category_labels=("Average Rating", ""),
-                    category_colors=("#FF5733", "#FFB533"),
-                    unit="★",
-                    parent=self.scrollable_frame
-                ))
-
-            # Example: Update the second graph (Average Stars by Movie Name Length)
-            if os.path.exists("name_length_to_average_stars.csv"):
-                data = {}
-                with open('name_length_to_average_stars.csv', 'r', encoding='utf-8') as csvfile:
-                    reader = csv.reader(csvfile)
-                    next(reader)  # Skip header
-                    for row in reader:
-                        name_length = int(row[0])
-                        avg_stars = float(row[1])
-                        data[name_length] = (avg_stars, 0)  # Add second value as 0
-
-                # Schedule the graph creation on the main thread
-                self.after(0, lambda: self.create_chart(
-                    data=data,
-                    title="Average Stars by Movie Name Length",
-                    category_labels=("Average Stars", ""),
-                    category_colors=("#33FF57", "#33FFB5"),
-                    unit="★",
-                    parent=self.scrollable_frame
-                ))
-
-    # Run the task in a separate thread to avoid blocking the GUI
-        threading.Thread(target=task).start()
 
 
 class ConsoleRedirector:
