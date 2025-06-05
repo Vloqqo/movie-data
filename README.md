@@ -92,7 +92,8 @@ This is an example of how to list things you need to use the software and how to
 ## Usage
 
 1. Click Scrape Links and number of pages to go through
-3. After it is finished it will go through the links and grab the data from each page
+2. After it is finished it will output a txt file import that file
+3. Using the links it will grab the data from each movie
 4. Then once you are done it will output the data to the gui in graphs under the Visualization tab
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
