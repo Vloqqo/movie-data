@@ -170,20 +170,18 @@ class App(ctk.CTk):
                 # Plot points with size based on overlap count
                 for x, y in points:
                     count = point_counts[(x, y)]
-                    # Increase base size to 100, with larger scaling factor
                     size = 100 + (count * 50)
                     axis.scatter(x, y, s=size, color=color, alpha=0.6,
                                  label=genre if (x, y) == points[0] else "",
                                  zorder=2)
 
-                    # Add count indicator if more than one point
                     if count > 1:
                         axis.text(x, y, str(count),
                                   horizontalalignment='center',
                                   verticalalignment='center',
                                   color='white',
                                   fontweight='bold',
-                                  fontsize=10,  # Increased font size
+                                  fontsize=10,
                                   zorder=3)
 
         axis.set_xlabel('Year', color='white')
@@ -235,7 +233,7 @@ class App(ctk.CTk):
         )
         self.create_genre_distribution_chart(
             data={},
-            genres=[],  # Add this parameter
+            genres=[],
             title="Genre Distribution Over Time",
             parent=self.scrollable_frame
         )
@@ -285,7 +283,7 @@ class App(ctk.CTk):
 
         # Set y-axis limits and ticks
         axis.set_ylim(0, 5)  # Set y-axis limits from 0 to 5
-        yticks = np.arange(0, 5.1, 0.5)  # Create ticks from 0 to 5 with 0.5 intervals
+        yticks = np.arange(0, 5.1, 0.5)
         axis.set_yticks(yticks)
         axis.set_yticklabels([f"{tick:.1f} {unit}" for tick in yticks], fontsize=10, color='white')
 

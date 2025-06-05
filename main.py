@@ -151,7 +151,7 @@ def get_links(num_pages=10, num_threads=1):
             f.write(f"{link}\n")
 
     print(f"Links saved to movie_links.txt")
-    print("\nLink collection completed. Starting data processing...")
+    print("\nLink collection completed. Starting data processing by importing the links from the file")
 
 # custom click as default wasn't working for me
 def custom_wait_clickable_and_click(selector):
