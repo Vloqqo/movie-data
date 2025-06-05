@@ -84,12 +84,19 @@ This is an example of how to list things you need to use the software and how to
    ```
 4. Run the python script
    ```js
-   python main.py
+   python gui.py
    ```
-5. Data saved to .csv in directory
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Usage
+
+1. Click Scrape Links and number of pages to go through
+2. After that is finished, click the import links button and direct it to movies_links.txt
+3. Now it will go through the links and grab the data from each page
+4. Then once you are done it will output the data to the gui in graphs under the Visualization tab
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 ## Roadmap
