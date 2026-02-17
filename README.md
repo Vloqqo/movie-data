@@ -96,12 +96,15 @@ This is an example of how to list things you need to use the software and how to
 3. Using the links it will grab the data from each movie
 4. Then once you are done it will output the data to the gui in graphs under the Visualization tab
 
+WARNING!!!
+Make sure to read the robots.txt file to make sure the website still allows for web scraping. Make sure to use it responsibly as this can overload website servers if not used responsibly. I am not personally responsible for how others use this tool.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Use with multiple movie sites
+- [ ] Use with multiple movie sites (need to respect robots.txt)
 - [ ] Optimize the program
 
 See the [open issues](https://github.com/github_username/repo_name/issues) for a full list of proposed features (and known issues).
