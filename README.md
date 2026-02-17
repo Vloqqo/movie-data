@@ -97,7 +97,7 @@ This is an example of how to list things you need to use the software and how to
 4. Then once you are done it will output the data to the gui in graphs under the Visualization tab
 
 WARNING!!!
-Make sure to read the robots.txt file to make sure the website still allows for web scraping. Make sure to use it responsibly as this can overload website servers if not used responsibly. I am not personally responsible for how others use this tool.
+Make sure to read the robots.txt file to make sure the website still allows for web scraping. Make sure to use it responsibly as this can overload website servers if not used responsibly. CommonSenseMedia (the website used) has disallowed use of web scrapers for their movie reviews after I had made this program. I am not personally responsible for how others use this tool.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
